@@ -61,11 +61,14 @@ def dispatch(intent_request):
     if intent_name == 'SearchRestaurant':
         msg = search_restaurant(intent_request)
         return {
-            'sessionAttributes': 'session_attributes',
+            'sessionAttributes': {},
             'dialogAction': {
                 'type': 'Close',
                 'fulfillmentState': 'Fulfilled',
-                'message': msg
+                'message': {
+                    'contentType': 'PlainText',
+                    'content': msg,
+                }
             }
         }
 
