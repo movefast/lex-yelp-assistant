@@ -21,6 +21,26 @@ logger.setLevel(logging.DEBUG)
 """ --- Helpers to build responses which match the structure of the necessary dialog actions --- """
 
 
+def build_response_card(title, subtitle, options):
+    """
+    Build a responseCard with a title, subtitle, and an optional set of options which should be displayed as buttons.
+    """
+    buttons = None
+    if options is not None:
+        buttons = []
+        for i in range(min(5, len(options))):
+            buttons.append(options[i])
+
+    return {
+        'contentType': 'application/vnd.amazonaws.card.generic',
+        # 'version': 1,
+        'genericAttachments': [{
+            'title': title,
+            'subTitle': subtitle,
+            'buttons': buttons
+        }]
+    }
+
 """ --- Helper Functions --- """
 
 """ --- Functions that control the bot's behavior --- """
@@ -42,7 +62,7 @@ def search_restaurant(intent_request):
     response = requests.request("GET", url, headers=headers, params=querystring)
     # output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
 
-    return json.loads(response.text)['businesses'][:1][0]['name']
+    return ','.join([each['name'] for each in json.loads(response.text)['businesses'][:10]])
 
 
 """ --- Intents --- """
@@ -68,6 +88,32 @@ def dispatch(intent_request):
                 'message': {
                     'contentType': 'PlainText',
                     'content': msg,
+                },
+                'responseCard': {
+                    "version": 1,
+                    "contentType": "application/vnd.amazonaws.card.generic",
+                    "genericAttachments": [
+                        {
+                            "title": "What Flavor?",
+                            "subTitle": "What flavor do you want?",
+                            "imageUrl": "https://s3-media1.fl.yelpcdn.com/bphoto/H_vQ3ElMoQ8j1bKidrv_1w/o.jpg",
+                            "attachmentLinkUrl": "https://www.yelp.com/biz/molinari-delicatessen-san-francisco?adjust_creative=jwMDC4ZCoiDXl9qZtNl05w&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=jwMDC4ZCoiDXl9qZtNl05w",
+                            # "buttons": [
+                            #     {
+                            #         "text": "Lemon",
+                            #         "value": "lemon"
+                            #     },
+                            #     {
+                            #         "text": "Raspberry",
+                            #         "value": "raspberry"
+                            #     },
+                            #     {
+                            #         "text": "Plain",
+                            #         "value": "plain"
+                            #     }
+                            # ]
+                        }
+                    ]
                 }
             }
         }
