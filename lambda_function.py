@@ -27,8 +27,22 @@ logger.setLevel(logging.DEBUG)
 
 
 def search_restaurant(intent_request):
-    pass
-	
+    import requests
+    import json
+
+    url = "https://api.yelp.com/v3/businesses/search"
+
+    querystring = {"term": "delis", "latitude": "37.786882", "longitude": "-122.399972"}
+
+    headers = {
+        'authorization': "Bearer 1k5o4aibpbMbLcu1zql6affDXcEzvcJ0psekaUJrB2173R6mDEwOfNKd59V8VVZQqy0YcgPTmm8ZUB9gQsTTpxAyl-_X-6I6lPvki0k_HX2iEQyj50SE0llhHsY6WXYx",
+        'cache-control': "no-cache",
+    }
+
+    response = requests.request("GET", url, headers=headers, params=querystring)
+    # output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
+
+    return json.loads(response.text)['businesses'][:1][0]['name']
 
 
 """ --- Intents --- """
@@ -45,7 +59,15 @@ def dispatch(intent_request):
 
     # Dispatch to your bot's intent handlers
     if intent_name == 'SearchRestaurant':
-        return search_restaurant(intent_request)
+        msg = search_restaurant(intent_request)
+        return {
+            'sessionAttributes': 'session_attributes',
+            'dialogAction': {
+                'type': 'Close',
+                'fulfillmentState': 'Fulfilled',
+                'message': msg
+            }
+        }
 
     raise Exception('Intent with name ' + intent_name + ' not supported')
 
