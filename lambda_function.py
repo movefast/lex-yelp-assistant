@@ -27,6 +27,7 @@ logger.setLevel(logging.DEBUG)
 
 
 def search_restaurant(intent_request):
+    pass
 	
 
 
@@ -43,8 +44,8 @@ def dispatch(intent_request):
     intent_name = intent_request['currentIntent']['name']
 
     # Dispatch to your bot's intent handlers
-    if intent_name == 'OrderFlowers':
-        return order_flowers(intent_request)
+    if intent_name == 'SearchRestaurant':
+        return search_restaurant(intent_request)
 
     raise Exception('Intent with name ' + intent_name + ' not supported')
 
