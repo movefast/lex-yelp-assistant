@@ -91,6 +91,13 @@ def search_restaurant(intent_request):
     url = "https://api.yelp.com/v3/businesses/search"
 
     querystring = {"term": "delis", "latitude": "37.786882", "longitude": "-122.399972"}
+    slots_map = intent_request['currentIntent'].get('slots', {})
+    city = slots_map.get('city')
+    if city is not None:
+        if city.lower() in ['ny', 'new york']:
+            querystring.update({"latitude": "40.7617022", "longitude": "-73.9821027"})
+        elif city.lower() in ['sf', 'san francisco']:
+            querystring.update({"latitude": "37.786882", "longitude": "-122.399972"})
 
     headers = {
         'authorization': "Bearer 1k5o4aibpbMbLcu1zql6affDXcEzvcJ0psekaUJrB2173R6mDEwOfNKd59V8VVZQqy0YcgPTmm8ZUB9gQsTTpxAyl-_X-6I6lPvki0k_HX2iEQyj50SE0llhHsY6WXYx",
@@ -98,13 +105,43 @@ def search_restaurant(intent_request):
     }
 
     response = requests.request("GET", url, headers=headers, params=querystring)
-    # output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
+    output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
 
     # return ','.join([each['name'] for each in json.loads(response.text)['businesses'][:10]])
+    businesses = json.loads(response.text)['businesses']
+
+    # build a mock user ratings matrix
+    import random
+    user_ratings_matrix = [[random.randint(0, 1) for _ in range(len(businesses))] for _ in range(5)]
+    user_ratings_col_matrix = [list(i) for i in zip(*user_ratings_matrix)]
+    cooccurance_matrix = [[0] * len(user_ratings_matrix[0]) for _ in range(len(user_ratings_matrix[0]))]
+    for i in range(len(user_ratings_col_matrix)):
+        for j in range(len(user_ratings_col_matrix)):
+            cooccurance_matrix[i][j] = sum([x & y for (x, y) in zip(user_ratings_col_matrix[i], user_ratings_col_matrix[j])])
+
+    for i in range(len(cooccurance_matrix)):
+        row_sum = sum(cooccurance_matrix[i])
+        if row_sum == 0:
+            continue
+        for j in range(len(cooccurance_matrix[0])):
+            cooccurance_matrix[i][j] /= float(row_sum)
+    # print cooccurance_matrix
+
+    # randomly select a user
+    user_id = random.randint(0, len(user_ratings_matrix) - 1)
+    # import numpy as np
+    # result = np.matmul(cooccurance_matrix, user_ratings_matrix[user_id])
+    # result_index = result.argsort()[-5:]
+    result = [sum(each[0] * each[1] for each in zip(user_ratings_matrix[user_id], row)) for row in cooccurance_matrix]
+    result_index = sorted(range(len(result)), key=result.__getitem__)[-5:]
+    # print(result)
+    # print(len(businesses))
+    selected_businesses = [businesses[i] for i in result_index]
+
     response_cards = {
         'contentType': 'application/vnd.amazonaws.card.generic',
         # 'version': 1,
-        'genericAttachments': [build_response_card_attachment(each['name'], 'TBD', each['image_url'], each['url']) for each in json.loads(response.text)['businesses'][:10]]
+        'genericAttachments': [build_response_card_attachment(each['name'], 'TBD', each['image_url'], each['url']) for each in selected_businesses]
     }
     return close({}, 'Fulfilled', 'Here\'re the choices you may consider:', response_cards)
 
